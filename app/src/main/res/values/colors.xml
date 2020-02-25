@@ -3,4 +3,6 @@
     <color name="colorPrimary">#B71C1C</color>
     <color name="colorPrimaryDark">#7f0000</color>
     <color name="colorAccent">#5e35b1</color>
+    <color name="botonMicOff">#FFFF0000</color>
+    <color name="botonMicOn">#FF00FF00</color>
 </resources>

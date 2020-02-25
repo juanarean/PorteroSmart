@@ -1,112 +1,269 @@
 package com.basis.porterosmart;
 
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
+import android.net.Uri;
+import android.net.rtp.AudioCodec;
+import android.net.rtp.AudioGroup;
+import android.net.rtp.AudioStream;
+import android.net.rtp.RtpStream;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.util.Base64;
+import android.os.NetworkOnMainThreadException;
+import android.text.format.Formatter;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.VideoView;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import androidx.appcompat.app.AppCompatActivity;
 
-public class VideoActivity extends AppCompatActivity implements SurfaceHolder.Callback, MediaPlayer.OnPreparedListener {
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-    VideoView videoView;
-    MediaPlayer mediaPlayer;
-    SurfaceView surfaceView;
-    SurfaceHolder surfaceHolder;
-    final String videoSrc = "rtsp://admin:proyecto@200.125.80.16/11";
+import org.videolan.libvlc.IVLCVout;
+import org.videolan.libvlc.LibVLC;
+import org.videolan.libvlc.Media;
+import org.videolan.libvlc.MediaPlayer;
+
+import java.net.*;
+import java.util.ArrayList;
+
+
+public class VideoActivity extends AppCompatActivity implements IVLCVout.Callback{
+
+    public final static String TAG = "VideoActivity";
+
+    public static final String RTSP_URL = "rtsp://admin:proyecto@psmart2020.ddns.net:554/11"; //200.125.80.16
+
+    // display surface
+    private SurfaceView mSurface;
+    private SurfaceHolder holder;
+
+    // media player
+    private LibVLC libvlc;
+    private MediaPlayer mMediaPlayer = null;
+    private int mVideoWidth;
+    private int mVideoHeight;
+    private final static int VideoSizeChanged = -1;
+    private MediaPlayer.EventListener mPlayerListener = new MyPlayerListener(VideoActivity.this);
+
+    // AudioStreamer RSTP
+    private static AudioStream myAudioStream;
+    private static AudioGroup myAudioGroup;
+    private static AudioManager myAudioManager;
+
+    private TextView volumenTextView;
+
+    private String myAddress;
+    TextView IPtv;
+
+    private enum StreamerState {
+        STREAMER_STATE_IDLE,
+        STREAMER_STATE_STREAMING,
+        STREAMER_STATE_STOPPED
+    }
+    private static StreamerState streamerState = StreamerState.STREAMER_STATE_IDLE;
+
+    private FloatingActionButton floatingActionButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video);
 
-        //requestWindowFeature(Window.FEATURE_NO_TITLE);
-        //setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        floatingActionButton = findViewById(R.id.floatingActionButton);
+        volumenTextView = findViewById(R.id.volumenTextView);
 
-        /*videoView = findViewById(R.id.videoView);
+        // Get URL
+        Log.d(TAG, "Playing back " + RTSP_URL);
 
-        MediaController mediaController = new MediaController(this);
-        mediaController.setAnchorView(videoView);
-        videoView.setMediaController(mediaController);
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        mVideoHeight = displayMetrics.heightPixels;
+        mVideoWidth = displayMetrics.widthPixels;
 
-        videoView.setVideoURI(Uri.parse(videoUrl));
+        mSurface = findViewById(R.id.surfaceView);
+        holder = mSurface.getHolder();
 
-        videoView.requestFocus();
+        ArrayList<String> options = new ArrayList<String>();
+        options.add("--aout=opensles");
+        options.add("--audio-time-stretch"); // time stretching
+        options.add("-vvv"); // verbosity
+        options.add("--aout=opensles");
+        options.add("--avcodec-codec=h264");
+        options.add("--file-logging");
+        options.add("--logfile=vlc-log.txt");
 
-        videoView.start();*/
-        surfaceView = findViewById(R.id.surfaceView);
-        surfaceHolder = surfaceView.getHolder();
-        surfaceHolder.addCallback(this);
 
+        libvlc = new LibVLC(this, options);
+        holder.setKeepScreenOn(true);
+
+        // Create media player
+        mMediaPlayer = new MediaPlayer(libvlc);
+        mMediaPlayer.setEventListener(mPlayerListener);
+
+        // --------------------  Audio Stream ------------------------------------
+
+        //SharedPreferences prefs = this.getSharedPreferences("porterosmart", Context.MODE_PRIVATE);
+        //final String ip = "200.125.80.16"; //prefs.getString("porterosmart.ip", "200.125.80.16");
+        //final String port = "1935"; //prefs.getString("porterosmart.port", "1935");
+        WifiManager manager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        myAddress = Formatter.formatIpAddress(manager.getConnectionInfo().getIpAddress());
+
+        IPtv = findViewById(R.id.IPtv);
+        IPtv.setText(myAddress);
+
+        // Boton para audio
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(streamerState == StreamerState.STREAMER_STATE_STREAMING) {
+                    StopAudioStream();
+                } else {
+                    StartAudioStream();
+                }
+            }
+        });
     }
 
+    private void StartAudioStream() {
+        int volumen;
+        int port = 1234;
 
-    @Override
-    public void onPrepared(MediaPlayer mediaPlayer) {
-        Log.d("AppTAG", "MEDIA player Prepared");
-        mediaPlayer.start();
-    }
-
-    @Override
-    public void surfaceCreated(SurfaceHolder surfaceHolder) {
-        Map<String, String> headers = getHeathers();
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setDisplay(surfaceHolder);
+        if (myAudioStream != null) {
+            return;
+        }
+        java.net.InetAddress address;
         try {
-            mediaPlayer.setDataSource(videoSrc);
-            //mediaPlayer.setOnPreparedListener(this);
-            mediaPlayer.prepare();
-            //mediaPlayer.prepareAsync();
-            mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
-        } catch (IllegalArgumentException e) {
-            Toast.makeText(VideoActivity.this,"Argumento ilegal",Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        } catch (SecurityException e) {
-            Toast.makeText(VideoActivity.this,"Seguridad",Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        } catch (IllegalStateException e) {
-            Toast.makeText(VideoActivity.this,"Estado ilegal",Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        } catch (IOException e) {
-            Toast.makeText(VideoActivity.this,"IO",Toast.LENGTH_LONG).show();
-            e.printStackTrace();
+            address = InetAddress.getByName("192.168.0.141");
+        } catch (UnknownHostException | NetworkOnMainThreadException e) {
+            Toast.makeText(this, "Problema cargando la IP. stream de audio", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        myAudioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        myAudioGroup = new AudioGroup();
+        myAudioGroup.setMode(RtpStream.MODE_SEND_ONLY);
+
+        try {
+            myAudioStream = new AudioStream(InetAddress.getByName(myAddress));
+        } catch (SocketException | UnknownHostException ex) {
+            Log.d("Error", "Cannot create audio stream");
+        }
+
+        myAudioStream.setCodec(AudioCodec.PCMA);
+
+        myAudioStream.setMode(RtpStream.MODE_SEND_ONLY);
+
+        myAudioStream.associate(address, port);
+        myAudioStream.join(myAudioGroup);
+
+        myAudioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+
+        myAudioManager.setSpeakerphoneOn(true);
+        myAudioManager.setMicrophoneMute(false);
+        volumen = myAudioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
+
+        //myAudioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, volumen, AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
+
+        volumenTextView.setText(String.valueOf(volumen));
+
+        floatingActionButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("green")));
+        floatingActionButton.setImageResource(R.drawable.ic_mic_white_48dp);
+        updateState(StreamerState.STREAMER_STATE_STREAMING);
+    }
+
+    private void StopAudioStream() {
+        if (myAudioStream != null) {
+            myAudioStream.join(null);
+            myAudioGroup.setMode(AudioGroup.MODE_ON_HOLD);
+            myAudioStream.release();
+            myAudioStream = null;
+            myAudioGroup = null;
+
+            floatingActionButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("red")));
+            floatingActionButton.setImageResource(R.drawable.ic_mic_off_black_24dp);
+            updateState(StreamerState.STREAMER_STATE_STOPPED);
         }
     }
 
-    private Map<String, String> getHeathers() {
-        Map<String, String> heather = new HashMap<>();
-        String describe = "DESCRIBE " + "rtsp://200.125.80.16/" + " RTSP/1.0";
-        String accept = "application/sdp";
-        String basicAuthValue = getBasicAuthValue("admin","proyecto");
-        heather.put("Authorization", basicAuthValue);
-        heather.put("Request", describe);
-        heather.put("Accept", accept);
-        return heather;
+    private void updateState(StreamerState state) {
+        streamerState = state;
     }
 
-    private String getBasicAuthValue(String usr, String pwd) {
-        String credentials = usr + ":" + pwd;
-        int flags = Base64.URL_SAFE|Base64.NO_WRAP;
-        byte[] bytes = credentials.getBytes();
-        return "Basic " + Base64.encodeToString(bytes, flags);
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Set up video output, ORIGINALMENTE ESTABA EN EL ONCREATE PERO NO RESUMIA DESPUES DE MINIMIZAR APP.
+        final IVLCVout vout = mMediaPlayer.getVLCVout();
+        vout.setVideoView(mSurface);
+        vout.setWindowSize(mVideoWidth,mVideoHeight);
+        vout.addCallback(this);
+        vout.attachViews();
+
+        Media m = new Media(libvlc, Uri.parse(RTSP_URL));
+
+        mMediaPlayer.setMedia(m);
+        mMediaPlayer.play();
+
+        // matener el boton actualizado
+        if(streamerState == StreamerState.STREAMER_STATE_STREAMING) {
+            floatingActionButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("green")));
+            floatingActionButton.setImageResource(R.drawable.ic_mic_white_48dp);
+        } else {
+            floatingActionButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("red")));
+            floatingActionButton.setImageResource(R.drawable.ic_mic_off_black_24dp);
+        }
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+    protected void onPause() {
+        super.onPause();
+        mMediaPlayer.stop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        releasePlayer();
+    }
+
+    @Override
+    public void onSurfacesCreated(IVLCVout vlcVout) {
 
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
-        mediaPlayer.release();
+    public void onSurfacesDestroyed(IVLCVout vlcVout) {
+
+    }
+
+
+
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+
+    }
+
+
+    public void releasePlayer() {
+        if (libvlc == null)
+            return;
+        mMediaPlayer.stop();
+        final IVLCVout vout = mMediaPlayer.getVLCVout();
+        vout.removeCallback(this);
+        vout.detachViews();
+        holder = null;
+        libvlc.release();
+        libvlc = null;
+
+        mVideoWidth = 0;
+        mVideoHeight = 0;
     }
 }

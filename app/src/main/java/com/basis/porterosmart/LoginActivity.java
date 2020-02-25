@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText Usuario;
     private EditText Password;
-    private Button btnLogin, btnLogin2;
+    private Button btnLogin;
     TextView Revision;
     private static final String UrlLogin = "http://";
     private static String UrlCamara;
@@ -44,7 +44,6 @@ public class LoginActivity extends AppCompatActivity {
         Usuario = findViewById(R.id.tvUsuario);
         Password =findViewById(R.id.tvPassword);
         btnLogin = findViewById(R.id.btnLogin);
-        btnLogin2 = findViewById(R.id.btnLogin2);
 
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -93,14 +92,6 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        btnLogin2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(LoginActivity.this, VideoActivity3.class);
-                startActivity(intent);
-                finish();
-            }
-        });
 
     }
 

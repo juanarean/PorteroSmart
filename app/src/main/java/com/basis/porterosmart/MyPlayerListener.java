@@ -7,16 +7,16 @@ import java.lang.ref.WeakReference;
 class MyPlayerListener implements MediaPlayer.EventListener {
 
     private static String TAG = "PlayerListener";
-    private WeakReference<VideoActivity3> mOwner;
+    private WeakReference<VideoActivity> mOwner;
 
 
-    public MyPlayerListener(VideoActivity3 owner) {
-        mOwner = new WeakReference<VideoActivity3>(owner);
+    public MyPlayerListener(VideoActivity owner) {
+        mOwner = new WeakReference<VideoActivity>(owner);
     }
 
     @Override
     public void onEvent(MediaPlayer.Event event) {
-        VideoActivity3 player = mOwner.get();
+        VideoActivity player = mOwner.get();
 
         switch(event.type) {
             case MediaPlayer.Event.EndReached:

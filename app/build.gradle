@@ -10,6 +10,9 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        ndk {
+            abiFilters "armeabi-v7a", "x86", "armeabi", "mips"
+        }
     }
     buildTypes {
         release {
@@ -36,10 +39,8 @@ dependencies {
     implementation "com.amazonaws:aws-android-sdk-iot:$aws_version"
     implementation "com.amazonaws:aws-android-sdk-mobile-client:$aws_version"
     // workmanager
-    implementation "androidx.work:work-runtime:2.2.0"
-    androidTestImplementation "androidx.work:work-testing:2.2.0"
-    //exoplayer
-    //implementation 'com.google.android.exoplayer:exoplayer:2.8.2'
+    implementation "androidx.work:work-runtime:2.3.0"
+    androidTestImplementation "androidx.work:work-testing:2.3.0"
     //VLC
     //implementation 'org.videolan.android:libvlc-all:3.1.12'
     implementation 'de.mrmaffen:libvlc-android:2.1.12@aar'
