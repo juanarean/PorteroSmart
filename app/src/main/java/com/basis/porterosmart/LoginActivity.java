@@ -28,9 +28,10 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText Usuario;
     private EditText Password;
+    private EditText Nserie;
     private Button btnLogin;
     TextView Revision;
-    private static final String UrlLogin = "http://";
+    private static final String UrlLogin = "http://35.166.19.153/Login.php";
     private static String UrlCamara;
 
     @Override
@@ -43,7 +44,15 @@ public class LoginActivity extends AppCompatActivity {
 
         Usuario = findViewById(R.id.tvUsuario);
         Password =findViewById(R.id.tvPassword);
+        Nserie = findViewById(R.id.tvNserie);
         btnLogin = findViewById(R.id.btnLogin);
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        if(!sharedPreferences.getString("usuario","default").equals("default")) {
+            Usuario.setText(sharedPreferences.getString("usuario", "default"));
+            Password.setText(sharedPreferences.getString("password", "default"));
+            Nserie.setText(sharedPreferences.getString("nserie", "default"));
+        }
 
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -54,10 +63,12 @@ public class LoginActivity extends AppCompatActivity {
                         new Response.Listener<String>() {
                             @Override
                             public void onResponse(String response) {
+                                Toast.makeText(getApplicationContext(), response, Toast.LENGTH_SHORT).show();
                                 SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
                                 SharedPreferences.Editor editor = sharedPreferences.edit();
                                 editor.putString("usuario", Usuario.getText().toString());
                                 editor.putString("password", Password.getText().toString());
+                                editor.putString("nserie", Nserie.getText().toString());
                                 editor.apply();
                             }
                         }, new Response.ErrorListener() {
@@ -69,8 +80,9 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     protected Map<String, String> getParams() throws AuthFailureError {
                         Map<String, String> params = new HashMap<>();
-                        params.put("usuario", Usuario.getText().toString());
-                        params.put("password", Password.getText().toString());
+                        params.put("Usuario", Usuario.getText().toString());
+                        params.put("Contrasena", Password.getText().toString());
+                        params.put("NumeSerie", Nserie.getText().toString());
                         return params;
                     }
                 };
