@@ -20,6 +20,9 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,6 +36,7 @@ public class LoginActivity extends AppCompatActivity {
     TextView Revision;
     private static final String UrlLogin = "http://35.166.19.153/Login.php";
     private static String UrlCamara;
+    private String topico;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +44,7 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         Revision = findViewById(R.id.tvRev);
-        Revision.setText("1.1.1");
+        Revision.setText("1.2.1");
 
         Usuario = findViewById(R.id.tvUsuario);
         Password =findViewById(R.id.tvPassword);
@@ -63,18 +67,36 @@ public class LoginActivity extends AppCompatActivity {
                         new Response.Listener<String>() {
                             @Override
                             public void onResponse(String response) {
-                                Toast.makeText(getApplicationContext(), response, Toast.LENGTH_SHORT).show();
-                                SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
-                                SharedPreferences.Editor editor = sharedPreferences.edit();
-                                editor.putString("usuario", Usuario.getText().toString());
-                                editor.putString("password", Password.getText().toString());
-                                editor.putString("nserie", Nserie.getText().toString());
-                                editor.apply();
+                                //Toast.makeText(getApplicationContext(), response, Toast.LENGTH_SHORT).show();
+                                if (!response.equals("Usuario no encontrado")) {
+                                    try {
+                                        JSONObject json = new JSONObject(response);
+                                        topico = json.getJSONObject("TopicoSuscribir").toString();
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
+
+                                    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
+                                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                                    editor.putString("usuario", Usuario.getText().toString());
+                                    editor.putString("password", Password.getText().toString());
+                                    editor.putString("nserie", Nserie.getText().toString());
+                                    editor.putString("topico", topico);
+                                    editor.apply();
+                                    // si hay respuesta lazo el servicio y luego voy al video
+                                    startService(new Intent(LoginActivity.this, MyService.class));
+
+                                    Intent intent = new Intent(LoginActivity.this, VideoActivity.class);
+                                    startActivity(intent);
+                                    finish();
+                                } else {
+                                    Toast.makeText(getApplicationContext(),"Error de Login!", Toast.LENGTH_SHORT).show();
+                                }
                             }
                         }, new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Toast.makeText(LoginActivity.this, "Error en Login!" + error.getMessage(),Toast.LENGTH_LONG).show();
+                        Toast.makeText(LoginActivity.this, "Error en servidor!" + error.getMessage(),Toast.LENGTH_SHORT).show();
                     }
                 }){
                     @Override
@@ -97,9 +119,7 @@ public class LoginActivity extends AppCompatActivity {
                 /*String movieurl = "rtsp://admin:proyecto@200.125.80.16:554/11";
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(movieurl));
                 startActivity(intent);*/
-                Intent intent = new Intent(LoginActivity.this, VideoActivity.class);
-                startActivity(intent);
-                finish();
+
 
             }
         });

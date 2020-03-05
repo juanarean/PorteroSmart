@@ -1,6 +1,7 @@
 package com.basis.porterosmart;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.media.AudioManager;
@@ -12,6 +13,7 @@ import android.net.rtp.RtpStream;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.NetworkOnMainThreadException;
+import android.preference.PreferenceManager;
 import android.text.format.Formatter;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -37,8 +39,9 @@ import java.util.ArrayList;
 public class VideoActivity extends AppCompatActivity implements IVLCVout.Callback{
 
     public final static String TAG = "VideoActivity";
-
-    public static final String RTSP_URL = "rtsp://admin:proyecto@psmart2020.ddns.net:554/11"; //200.125.80.16
+    public String ddns;
+    public static final String RTSP_LOGIN = "rtsp://admin:proyecto@";
+    public static final String RTSP_PORT = ".ddns.net:554/11";
 
     // display surface
     private SurfaceView mSurface;
@@ -79,8 +82,14 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         floatingActionButton = findViewById(R.id.floatingActionButton);
         volumenTextView = findViewById(R.id.volumenTextView);
 
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        ddns = sharedPreferences.getString("nserie","default");
+        if(ddns.equals("default")){
+            Toast.makeText(this,"Error en el DDNS",Toast.LENGTH_LONG);
+        }
+
         // Get URL
-        Log.d(TAG, "Playing back " + RTSP_URL);
+        Log.d(TAG, "Playing back " + RTSP_LOGIN + ddns + RTSP_PORT);
 
         DisplayMetrics displayMetrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
@@ -207,7 +216,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         vout.addCallback(this);
         vout.attachViews();
 
-        Media m = new Media(libvlc, Uri.parse(RTSP_URL));
+        Media m = new Media(libvlc, Uri.parse(RTSP_LOGIN + ddns + RTSP_PORT));
 
         mMediaPlayer.setMedia(m);
         mMediaPlayer.play();

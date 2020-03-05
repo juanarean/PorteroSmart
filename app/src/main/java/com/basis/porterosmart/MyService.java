@@ -6,9 +6,11 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -32,6 +34,7 @@ public class MyService extends Service {
     private static final String CUSTOMER_SPECIFIC_IOT_ENDPOINT = "aklvwl0ribi6h-ats.iot.us-west-2.amazonaws.com";
     static final String LOG_TAG = "AsyncTask";
     public Runnable runnable = null;
+    public String topico;
 
     private static final String CHANNEL_ID = "Psmart";
     private NotificationManagerCompat notificationManager;
@@ -83,7 +86,7 @@ public class MyService extends Service {
                     @Override
                     public void onResult(UserStateDetails result) {
                         latch.countDown();
-                        Log.d(LOG_TAG, "AWSMobileClient on Result!!!!!!!!!!!!!");
+                        Log.d(LOG_TAG, "AWSMobileClient on Result");
                     }
 
                     @Override
@@ -103,6 +106,11 @@ public class MyService extends Service {
         // MQTT Client
         mqttManager = new AWSIotMqttManager(clientId, CUSTOMER_SPECIFIC_IOT_ENDPOINT);
         Log.d(LOG_TAG, "AWSMqttManager");
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        topico = "Proyecto2019"; //sharedPreferences.getString("topico","default");
+        /*if(topico.equals("default")){
+            Log.d(LOG_TAG, "Error en el tópico");
+        }*/
 
 
         try {
@@ -112,7 +120,7 @@ public class MyService extends Service {
                     Log.d(LOG_TAG, "Status = " + String.valueOf(status));
                     if (String.valueOf(status).equals("Connected")) {
                         try {
-                            mqttManager.subscribeToTopic("Proyecto2019", AWSIotMqttQos.QOS0,
+                            mqttManager.subscribeToTopic(topico, AWSIotMqttQos.QOS0,
                                     new AWSIotMqttNewMessageCallback() {
                                         @Override
                                         public void onMessageArrived(final String topic, final byte[] data) {
