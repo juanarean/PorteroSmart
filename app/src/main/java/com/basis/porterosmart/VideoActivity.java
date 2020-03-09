@@ -70,7 +70,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         STREAMER_STATE_STREAMING,
         STREAMER_STATE_STOPPED
     }
-    private static StreamerState streamerState = StreamerState.STREAMER_STATE_IDLE;
+    private static StreamerState streamAudioState = StreamerState.STREAMER_STATE_IDLE;
 
     private FloatingActionButton floatingActionButton;
 
@@ -85,7 +85,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         ddns = sharedPreferences.getString("nserie","default");
         if(ddns.equals("default")){
-            Toast.makeText(this,"Error en el DDNS",Toast.LENGTH_LONG);
+            Toast.makeText(this,"Error en el DDNS",Toast.LENGTH_LONG).show();
         }
 
         // Get URL
@@ -131,7 +131,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(streamerState == StreamerState.STREAMER_STATE_STREAMING) {
+                if(streamAudioState == StreamerState.STREAMER_STATE_STREAMING) {
                     StopAudioStream();
                 } else {
                     StartAudioStream();
@@ -202,7 +202,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
     }
 
     private void updateState(StreamerState state) {
-        streamerState = state;
+        streamAudioState = state;
     }
 
 
@@ -222,7 +222,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         mMediaPlayer.play();
 
         // matener el boton actualizado
-        if(streamerState == StreamerState.STREAMER_STATE_STREAMING) {
+        if(streamAudioState == StreamerState.STREAMER_STATE_STREAMING) {
             floatingActionButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("green")));
             floatingActionButton.setImageResource(R.drawable.ic_mic_white_48dp);
         } else {
@@ -242,6 +242,8 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         super.onDestroy();
         releasePlayer();
     }
+
+
 
     @Override
     public void onSurfacesCreated(IVLCVout vlcVout) {

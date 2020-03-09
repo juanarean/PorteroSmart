@@ -1,6 +1,8 @@
 package com.basis.porterosmart;
 
+import android.content.BroadcastReceiver;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -19,6 +21,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.basis.porterosmart.Common.MyApp;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -84,7 +87,17 @@ public class LoginActivity extends AppCompatActivity {
                                     editor.putString("topico", topico);
                                     editor.apply();
                                     // si hay respuesta lazo el servicio y luego voy al video
-                                    startService(new Intent(LoginActivity.this, MyService.class));
+                                    Intent jobServiceIntent = new Intent(MyApp.getContext(), MyService.class);
+                                    MyService.enqueueWork(MyApp.getContext(),jobServiceIntent);
+                                    //TareaAsync tareaAsync = new TareaAsync();
+                                    //tareaAsync.execute();
+                                    //startService(new Intent(getApplicationContext(),MyService2.class));
+
+                                    //Broadcasts receivers
+                                    //BroadcastReceiver br = new MyReceiver();
+                                    //IntentFilter filter = new IntentFilter();
+                                    //filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+                                    //this.registerReceiver(br, filter);
 
                                     Intent intent = new Intent(LoginActivity.this, VideoActivity.class);
                                     startActivity(intent);
@@ -111,14 +124,6 @@ public class LoginActivity extends AppCompatActivity {
 
                 //Aca agrego la request, si no, no la manda.
                 queue.add(stringRequest);
-
-                //En un login correcto activo el servicio (una vez que se mis datos)
-                //startService(new Intent(LoginActivity.this, MyService.class));
-
-                //Paso a la siguiente activity
-                /*String movieurl = "rtsp://admin:proyecto@200.125.80.16:554/11";
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(movieurl));
-                startActivity(intent);*/
 
 
             }
