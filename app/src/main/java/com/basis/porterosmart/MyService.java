@@ -29,6 +29,7 @@ import com.amazonaws.mobileconnectors.iot.AWSIotMqttNewMessageCallback;
 import com.amazonaws.mobileconnectors.iot.AWSIotMqttQos;
 import com.basis.porterosmart.Common.MyApp;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
@@ -51,6 +52,7 @@ public class MyService extends JobIntentService {
     static final String LOG_TAG = "Servicio MQTT";
     public String estado;
     public String topico;
+    private String depto;
 
     private static final String CHANNEL_ID = "Psmart";
     private NotificationManagerCompat notificationManager;
@@ -58,6 +60,12 @@ public class MyService extends JobIntentService {
 
     @Override
     protected void onHandleWork(Intent intent){
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        topico = sharedPreferences.getString("nserie","default");
+        depto = sharedPreferences.getString("timbre","default");
+        if(topico.equals("default")){
+            Log.d(LOG_TAG, "Error en el tópico");
+        }
         myTask();
     }
 
@@ -113,11 +121,7 @@ public class MyService extends JobIntentService {
         // MQTT Client
         mqttManager = new AWSIotMqttManager(clientId, CUSTOMER_SPECIFIC_IOT_ENDPOINT);
         Log.d(LOG_TAG, "AWSMqttManager");
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        topico = sharedPreferences.getString("topico","default");
-        if(topico.equals("default")){
-            Log.d(LOG_TAG, "Error en el tópico");
-        }
+
 
         final CountDownLatch latchInfinito = new CountDownLatch(1);
         try {
@@ -133,7 +137,10 @@ public class MyService extends JobIntentService {
                                         @Override
                                         public void onMessageArrived(final String topic, final byte[] data) {
                                             Log.d(LOG_TAG, "llegada de mensaje");
-                                            Notificacion();
+                                            String mensaje = new String(data, StandardCharsets.UTF_8);
+                                            if (mensaje.equals(depto)){
+                                                Notificacion("Estan tocando tu timbre");
+                                            }
                                         }
                                     });
                         } catch (Exception e) {
@@ -161,7 +168,7 @@ public class MyService extends JobIntentService {
      * Funcion para lanzar una push notification en el sistema.
      *
      */
-        private void Notificacion() {
+        private void Notificacion(String mensaje) {
             createNotificationChannel();
 
             notificationManager = NotificationManagerCompat.from(getApplicationContext());
@@ -173,7 +180,7 @@ public class MyService extends JobIntentService {
                     .setSmallIcon(R.drawable.logo)
                     .setLargeIcon(BitmapFactory.decodeResource(getApplicationContext().getResources(), R.drawable.logo))
                     .setContentTitle("Portero Smart")
-                    .setContentText("Estan tocando el timbre")
+                    .setContentText(mensaje)
                     .setDefaults(Notification.DEFAULT_ALL)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)

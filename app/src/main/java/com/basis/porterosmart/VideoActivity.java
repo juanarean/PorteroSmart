@@ -106,6 +106,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         ddns = sharedPreferences.getString("nserie","default");
+
         if(ddns.equals("default")){
             Toast.makeText(this,"Error en el DDNS",Toast.LENGTH_LONG).show();
         }
@@ -148,7 +149,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         myAddress = Formatter.formatIpAddress(manager.getConnectionInfo().getIpAddress());
 
         IPtv = findViewById(R.id.tvIP);
-        IPtv.setText(myAddress);
+        IPtv.setText(sharedPreferences.getString("timbre","default"));
 
         // Boton para audio
         floatingActionButton.setOnClickListener(new View.OnClickListener() {

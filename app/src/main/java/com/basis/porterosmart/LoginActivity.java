@@ -1,8 +1,6 @@
 package com.basis.porterosmart;
 
-import android.content.BroadcastReceiver;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -42,7 +40,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextInputLayout til3;
     TextView Revision;
     private static final String UrlLogin = "http://35.166.19.153/Login.php";
-    private String topico;
+    private String timbre;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,21 +106,16 @@ public class LoginActivity extends AppCompatActivity {
                     public void onResponse(String response) {
 
                         if (!response.equals("Usuario no encontrado")) {
-                            // Si la respuesta es positiva, obtengo el valor del Tópico al cual subscribir la app y la guardo en la SharedMemory.
-                            try {
-                                JSONObject json = new JSONObject(response);
-                                topico = json.getJSONObject("TopicoSuscribir").toString();
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
+                            timbre = response;
                             // Si la respuesta es positiva, guardo las credenciales en la SharedMemory.
                             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
                             SharedPreferences.Editor editor = sharedPreferences.edit();
                             editor.putString("usuario", Usuario.getText().toString());
                             editor.putString("password", Password.getText().toString());
                             editor.putString("nserie", Nserie.getText().toString());
-                            editor.putString("topico", topico);
+                            editor.putString("timbre", timbre);
                             editor.apply();
+
                             // Si hay respuesta lanzo el servicio MQTT y luego voy al video.
                             Intent jobServiceIntent = new Intent(MyApp.getContext(), MyService.class);
                             MyService.enqueueWork(MyApp.getContext(),jobServiceIntent);
