@@ -27,25 +27,32 @@
         app:backgroundTint="@color/botonMicOff"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@drawable/ic_mic_off_black_24dp" />
+        app:srcCompat="@drawable/ic_mic_off_black_24dp"
+        android:focusable="true" />
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:minHeight="?attr/actionBarSize"
+        android:theme="?attr/actionBarTheme"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/surfaceView" />
 
     <TextView
-        android:id="@+id/IPtv"
+        android:id="@+id/tvIP"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="TextView"
-        android:textColor="@android:color/white"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toBottomOf="@+id/toolbar" />
 
     <TextView
-        android:id="@+id/volumenTextView"
+        android:id="@+id/tvVolumen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
         android:text="TextView"
-        android:textColor="@android:color/white"
-        app:layout_constraintEnd_toEndOf="@+id/IPtv"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/IPtv" />
+        app:layout_constraintTop_toBottomOf="@+id/tvIP" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -34,12 +34,12 @@ import java.util.concurrent.CountDownLatch;
 
 public class MyService extends JobIntentService {
     /**
-     * Unique job ID for this service.
+     * Identifico el JOB para que no existan varias instancias.
      */
     static final int JOB_ID = 1000;
 
     /**
-     * Convenience method for enqueuing work in to this service.
+     * Aca se pone en la cola la petición del sericio.
      */
     static void enqueueWork(Context context, Intent work) {
         enqueueWork(context, MyService.class, JOB_ID, work);
@@ -59,8 +59,6 @@ public class MyService extends JobIntentService {
     @Override
     protected void onHandleWork(Intent intent){
         myTask();
-        //TareaAsync tareaAsync = new TareaAsync();
-        //tareaAsync.execute();
     }
 
 
@@ -81,6 +79,12 @@ public class MyService extends JobIntentService {
         });
     }
 
+    /**
+     * La tarea del servicio conecta al servidor de amazon utilizando la configuracion en raw/awsconfiguration.json
+     * para tener acceso al MQTT se debe configurar el AWS Cognito (es el metodo de validación de amazon para conectarse por medio de estas peticiones.
+     * Se declara un AWSIotMqttManager conectandose al MQTT y por medio connect() se conecta y subscribe() se subscribe al tópico
+     *
+     */
     public void myTask() {
         clientId = UUID.randomUUID().toString();
         final CountDownLatch latch = new CountDownLatch(1);
@@ -153,7 +157,10 @@ public class MyService extends JobIntentService {
 
     }
 
-
+    /**
+     * Funcion para lanzar una push notification en el sistema.
+     *
+     */
         private void Notificacion() {
             createNotificationChannel();
 
@@ -170,7 +177,6 @@ public class MyService extends JobIntentService {
                     .setDefaults(Notification.DEFAULT_ALL)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                    // Set the intent that will fire when the user taps the notification
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true);
 
@@ -178,16 +184,12 @@ public class MyService extends JobIntentService {
         }
 
         private void createNotificationChannel() {
-            // Create the NotificationChannel, but only on API 26+ because
-            // the NotificationChannel class is new and not in the support library
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 CharSequence name = "NoficacionPsmart";
                 String description = "Notificacion de timbre";
                 int importance = NotificationManager.IMPORTANCE_HIGH;
                 NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
                 channel.setDescription(description);
-                // Register the channel with the system; you can't change the importance
-                // or other notification behaviors after this
                 NotificationManager notificationManager = getApplicationContext().getSystemService(NotificationManager.class);
                 notificationManager.createNotificationChannel(channel);
             }

@@ -1,6 +1,9 @@
 package com.basis.porterosmart;
 
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -14,17 +17,26 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.NetworkOnMainThreadException;
 import android.preference.PreferenceManager;
+import android.provider.MediaStore;
 import android.text.format.Formatter;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.DialogFragment;
+
+import com.basis.porterosmart.Common.MyApp;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.videolan.libvlc.IVLCVout;
@@ -35,7 +47,13 @@ import org.videolan.libvlc.MediaPlayer;
 import java.net.*;
 import java.util.ArrayList;
 
+/**
+Esta Activity utiliza la libreria VLC ubicada en el repositorio: 'de.mrmaffen:libvlc-android:2.1.12@aar' e implementa IVLCVout.Callback
+ con lo cual utiliza los métodos de dicha Interface.
+ En el onCreate se declaran la SurfaceView donde se reproducirá el video, se crea el objeto libvlc y se configura.
+ Se utiliza la libreria MediaPlayer y se la carga con la libreria VLC. Luego el player creado con la MediaLibrary nos da la recepción del video que se configuró previamente.
 
+ */
 public class VideoActivity extends AppCompatActivity implements IVLCVout.Callback{
 
     public final static String TAG = "VideoActivity";
@@ -79,8 +97,12 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video);
 
+        //toolbar
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         floatingActionButton = findViewById(R.id.floatingActionButton);
-        volumenTextView = findViewById(R.id.volumenTextView);
+        volumenTextView = findViewById(R.id.tvVolumen);
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         ddns = sharedPreferences.getString("nserie","default");
@@ -118,13 +140,14 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
 
         // --------------------  Audio Stream ------------------------------------
 
-        //SharedPreferences prefs = this.getSharedPreferences("porterosmart", Context.MODE_PRIVATE);
-        //final String ip = "200.125.80.16"; //prefs.getString("porterosmart.ip", "200.125.80.16");
-        //final String port = "1935"; //prefs.getString("porterosmart.port", "1935");
+        /** Se intento utilizar la libreria AudioManager para stremear audio ya que se puede configurar como PCM que es el protocolo RTP definido por la cámara.
+         * pero no se logró conectar con el puerto correcto de la cámara.
+         * Debemos hacerlo con hardware extra.
+         */
         WifiManager manager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         myAddress = Formatter.formatIpAddress(manager.getConnectionInfo().getIpAddress());
 
-        IPtv = findViewById(R.id.IPtv);
+        IPtv = findViewById(R.id.tvIP);
         IPtv.setText(myAddress);
 
         // Boton para audio
@@ -178,7 +201,6 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         myAudioManager.setMicrophoneMute(false);
         volumen = myAudioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
 
-        //myAudioManager.setStreamVolume(AudioManager.STREAM_VOICE_CALL, volumen, AudioManager.FLAG_SHOW_UI | AudioManager.FLAG_PLAY_SOUND);
 
         volumenTextView.setText(String.valueOf(volumen));
 
@@ -210,6 +232,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
     protected void onResume() {
         super.onResume();
         // Set up video output, ORIGINALMENTE ESTABA EN EL ONCREATE PERO NO RESUMIA DESPUES DE MINIMIZAR APP.
+        // Aca se enlaza el SurfaceView con la salida del VLC
         final IVLCVout vout = mMediaPlayer.getVLCVout();
         vout.setVideoView(mSurface);
         vout.setWindowSize(mVideoWidth,mVideoHeight);
@@ -221,7 +244,7 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         mMediaPlayer.setMedia(m);
         mMediaPlayer.play();
 
-        // matener el boton actualizado
+        // matener el boton de audio actualizado
         if(streamAudioState == StreamerState.STREAMER_STATE_STREAMING) {
             floatingActionButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("green")));
             floatingActionButton.setImageResource(R.drawable.ic_mic_white_48dp);
@@ -231,12 +254,14 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         }
     }
 
+    // Al sacar la app del primer plano pausa el video para no consumir recursos.
     @Override
     protected void onPause() {
         super.onPause();
         mMediaPlayer.stop();
     }
 
+    // Al cerrar la al devuelvo los recursos tomados... el sistema operativo se puede encargar de esto también
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -277,4 +302,49 @@ public class VideoActivity extends AppCompatActivity implements IVLCVout.Callbac
         mVideoWidth = 0;
         mVideoHeight = 0;
     }
+
+    // Creacion y opciones de la Toolbar
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.toolbar_menu, menu);
+        return true;
+    }
+
+    // Opcion de la Toolbar de cerrar sesión
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+                AlertDialog.Builder alertBuilder = new AlertDialog.Builder(VideoActivity.this);
+                alertBuilder.setMessage("Desea cerrar sesión?")
+                        .setPositiveButton("Sí", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(VideoActivity.this);
+                                SharedPreferences.Editor editor = sharedPreferences.edit();
+                                editor.putString("usuario", "default");
+                                editor.putString("password", "default");
+                                editor.putString("nserie", "default");
+                                editor.putString("topico", "default");
+                                editor.apply();
+
+                                Intent intent = new Intent(VideoActivity.this, LoginActivity.class);
+                                startActivity(intent);
+                                finish();
+                            }
+                        })
+                        .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                            }
+                        });
+
+                AlertDialog alerta = alertBuilder.create();
+                alerta.show();
+
+                return true;
+    }
+
+
 }
