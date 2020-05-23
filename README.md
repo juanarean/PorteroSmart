@@ -19,4 +19,4 @@ Utiliza la libreria VLC para capturar audio y video de la cámara.
 
 A su vez lanza un servicio con la libreria JobIntentService que se conecta a AWS MQTT y se subscribe al tópico MQTT de Amazon al cual el ESP publica.
 
-Al recibir un mensaje de ese tópico se lanaza una push notification para 
+Al recibir un mensaje de ese tópico se lanza una push notification para que el usuario pueda abrir la app directamente la activity con el video y audio.
